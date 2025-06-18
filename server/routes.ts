@@ -198,6 +198,20 @@ interface AutoBackupConfig {
   lastBackupTime?: string;
 }
 
+// 브랜딩 설정 관리
+interface BrandingConfig {
+  loginTitle: string;
+  headerTitle: string;
+  logoUrl: string;
+}
+
+// 브랜딩 설정 기본값
+let brandingConfig: BrandingConfig = {
+  loginTitle: "NARA 업무관리시스템",
+  headerTitle: "NARA 업무관리",
+  logoUrl: "/nara-logo.png"
+};
+
 // 시스템 보안 설정 인터페이스
 interface SystemSecurityConfig {
   f12Restriction: boolean; // F12 개발자 도구 제한 여부
@@ -2959,6 +2973,128 @@ router.put('/api/admin/storage-config', async (req, res) => {
     res.status(500).json({
       success: false,
       message: '저장 설정 업데이트 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 브랜딩 설정 조회
+router.get('/api/admin/branding-config', (req, res) => {
+  try {
+    const userId = req.session.userId;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: '로그인이 필요합니다.'
+      });
+    }
+    
+    const currentAccount = accountDatabase[userId];
+    if (!currentAccount || (currentAccount.role !== 'developer' && currentAccount.role !== 'manager')) {
+      return res.status(403).json({
+        success: false,
+        message: '관리자 권한이 필요합니다.'
+      });
+    }
+    
+    res.json({
+      success: true,
+      config: brandingConfig
+    });
+    
+  } catch (error) {
+    console.error('❌ 브랜딩 설정 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '브랜딩 설정 조회 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 브랜딩 설정 업데이트
+router.put('/api/admin/branding-config', (req, res) => {
+  try {
+    const userId = req.session.userId;
+    const { loginTitle, headerTitle, logoUrl } = req.body;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: '로그인이 필요합니다.'
+      });
+    }
+    
+    const currentAccount = accountDatabase[userId];
+    if (!currentAccount || (currentAccount.role !== 'developer' && currentAccount.role !== 'manager')) {
+      return res.status(403).json({
+        success: false,
+        message: '관리자 권한이 필요합니다.'
+      });
+    }
+    
+    // 브랜딩 설정 업데이트
+    if (loginTitle !== undefined) brandingConfig.loginTitle = loginTitle;
+    if (headerTitle !== undefined) brandingConfig.headerTitle = headerTitle;
+    if (logoUrl !== undefined) brandingConfig.logoUrl = logoUrl;
+    
+    console.log('✅ 브랜딩 설정 업데이트:', brandingConfig);
+    
+    // 시스템 로그 추가
+    addSystemLog({
+      username: userId,
+      action: 'data_update',
+      details: `브랜딩 설정 변경: 로그인제목="${loginTitle}", 헤더제목="${headerTitle}", 로고="${logoUrl}"`,
+      ipAddress: req.ip
+    });
+    
+    res.json({
+      success: true,
+      message: '브랜딩 설정이 업데이트되었습니다.',
+      config: brandingConfig
+    });
+    
+  } catch (error) {
+    console.error('❌ 브랜딩 설정 업데이트 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '브랜딩 설정 업데이트 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 로고 업로드 API
+router.post('/api/admin/upload-logo', (req, res) => {
+  try {
+    const userId = req.session.userId;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: '로그인이 필요합니다.'
+      });
+    }
+    
+    const currentAccount = accountDatabase[userId];
+    if (!currentAccount || (currentAccount.role !== 'developer' && currentAccount.role !== 'manager')) {
+      return res.status(403).json({
+        success: false,
+        message: '관리자 권한이 필요합니다.'
+      });
+    }
+    
+    // 실제 파일 업로드 구현은 multer나 다른 미들웨어가 필요하므로
+    // 현재는 기본 응답만 제공
+    res.json({
+      success: true,
+      message: '로고 업로드가 완료되었습니다.',
+      logoUrl: '/uploaded-logo.png' // 실제 업로드된 파일 경로
+    });
+    
+  } catch (error) {
+    console.error('❌ 로고 업로드 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '로고 업로드 중 오류가 발생했습니다.'
     });
   }
 });

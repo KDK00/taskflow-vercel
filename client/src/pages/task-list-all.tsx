@@ -169,6 +169,7 @@ export default function TaskListAll() {
   // 🔥 수정 카운팅 시스템 상태 추가
   const [pendingChanges, setPendingChanges] = useState<{[key: number]: Partial<DailyTaskWithDetails>}>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<{[key: number]: boolean}>({});
+  const [isSaving, setIsSaving] = useState(false); // 저장 중 상태 추가
 
   // 정렬 상태 추가
   const [sortField, setSortField] = useState<SortField>('createdAt');
@@ -417,30 +418,49 @@ export default function TaskListAll() {
     });
 
   const savePendingChange = (taskId: number, field: string, newValue: any) => {
-    setPendingChanges(prev => ({
-      ...prev,
-      [taskId]: {
-        ...prev[taskId],
-        [field]: newValue
-      }
-    }));
-    setHasUnsavedChanges(prev => ({
-      ...prev,
-      [taskId]: true
-    }));
+    console.log('💾 Pending 변경사항 저장:', { taskId, field, newValue });
+    
+    setPendingChanges(prev => {
+      const updated = {
+        ...prev,
+        [taskId]: {
+          ...prev[taskId],
+          [field]: newValue
+        }
+      };
+      console.log('📝 Updated pendingChanges:', updated);
+      return updated;
+    });
+    
+    setHasUnsavedChanges(prev => {
+      const updated = {
+        ...prev,
+        [taskId]: true
+      };
+      console.log('🔔 Updated hasUnsavedChanges:', updated);
+      return updated;
+    });
   };
 
   // 전체 수정사항 일괄 저장 함수
   const handleSaveAllChanges = async () => {
+    console.log('🚀 일괄 저장 시작 - pendingChanges:', pendingChanges);
+    
     const taskIdsWithChanges = Object.keys(pendingChanges).map(id => parseInt(id));
     
+    console.log('📋 저장할 업무 ID들:', taskIdsWithChanges);
+    
     if (taskIdsWithChanges.length === 0) {
+      console.log('❌ 저장할 변경사항 없음 - pendingChanges가 비어있음');
       toast({
         title: "💡 저장할 변경사항 없음",
         description: "수정된 항목이 없습니다.",
       });
       return;
     }
+
+    // 🛡️ 저장 중 상태 설정 (다른 이벤트로 인한 리셋 방지)
+    setIsSaving(true);
 
     try {
       let successCount = 0;
@@ -450,38 +470,61 @@ export default function TaskListAll() {
         const changes = pendingChanges[taskId];
         if (!changes) continue;
       
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
+        console.log(`💾 업무 ${taskId} 저장 시도:`, changes);
+        
+        const response = await fetch(`/api/tasks/${taskId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
           body: JSON.stringify(changes)
-      });
+        });
+        
+        console.log(`📡 업무 ${taskId} 서버 응답:`, response.status, response.statusText);
 
         if (response.ok) {
           successCount++;
         }
       }
 
-      // 성공적으로 저장된 후 모든 상태 초기화
+      console.log('🔄 서버 저장 완료 - 캐시 무효화 및 새로고침 시작');
+      
+      // 🎯 핵심 수정: 서버 데이터 동기화를 먼저 완료
+      await queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      await queryClient.refetchQueries({ queryKey: ['tasks'] });
+      
+      // 서버 응답이 완전히 처리되고 화면이 업데이트되도록 충분한 딜레이
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // 🛡️ 저장 중 상태가 여전히 true인지 확인 (다른 저장 프로세스와의 충돌 방지)
+      if (!isSaving) {
+        console.log('⚠️ 저장 상태가 이미 해제됨 - 로컬 상태 초기화 건너뜀');
+        return;
+      }
+      
+      console.log('🧹 서버 데이터 동기화 완료 - 로컬 상태 초기화');
+      
+      // 🎯 서버 데이터 동기화 완료 후 로컬 상태 초기화
       setPendingChanges({});
       setHasUnsavedChanges({});
-
-      // 즉시 캐시 무효화 및 리페치 (즉시 반영)
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.refetchQueries({ queryKey: ['tasks'] });
       
       toast({
         title: "✅ 일괄 저장 완료",
         description: `${successCount}개 업무가 저장되었습니다.`,
       });
+      
+      console.log('✅ 일괄 저장 프로세스 완전 완료');
     } catch (error: any) {
+      console.error('❌ 일괄 저장 실패:', error);
       toast({
         variant: "destructive",
         title: "❌ 일괄 저장 실패",
         description: error.message || "저장 중 오류가 발생했습니다.",
       });
+    } finally {
+      // 🛡️ 저장 완료 후 상태 해제
+      setIsSaving(false);
     }
   };
 
@@ -791,7 +834,19 @@ export default function TaskListAll() {
 
   // 🔥 다른 페이지에서의 업무 변경사항 실시간 반영을 위한 전역 이벤트 리스너
   useEffect(() => {
-    const handleTaskUpdate = () => {
+    const handleTaskUpdate = (event?: CustomEvent) => {
+      // 🛡️ 저장 중일 때는 자동 새로고침 방지
+      if (isSaving) {
+        console.log('🛡️ 저장 중이므로 자동 새로고침 생략');
+        return;
+      }
+      
+      // 🛡️ 오늘할일 카드에서 발생한 이벤트는 무시 (중복 새로고침 방지)
+      if (event?.detail?.source === 'today-schedule-card' && event?.detail?.preventAutoRefresh) {
+        console.log('🛡️ 오늘할일 카드 저장 이벤트 - 자동 새로고침 건너뜀');
+        return;
+      }
+      
       // 중앙집중식 업무목록 새로고침
       invalidateAndRefetch();
     };
@@ -812,7 +867,7 @@ export default function TaskListAll() {
       window.removeEventListener('tasksBulkDeleted', handleTaskUpdate);
       window.removeEventListener('tasksBulkUpdated', handleTaskUpdate);
     };
-  }, [invalidateAndRefetch]);
+  }, [invalidateAndRefetch, isSaving]);
 
   return (
     <div className="min-h-screen gradient-bg relative">
@@ -1123,10 +1178,18 @@ export default function TaskListAll() {
                     <Button
                         onClick={handleSaveAllChanges}
                         variant="default"
-                      size="sm"
-                        className="h-8 px-3 text-xs font-medium bg-green-600 hover:bg-green-700"
+                        size="sm"
+                        disabled={isSaving}
+                        className="h-8 px-3 text-xs font-medium bg-green-600 hover:bg-green-700 disabled:bg-green-400"
                     >
-                        {totalUnsavedChanges} 수정저장
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                            저장중...
+                          </>
+                        ) : (
+                          `${totalUnsavedChanges} 수정저장`
+                        )}
                     </Button>
                     )}
                   </div>

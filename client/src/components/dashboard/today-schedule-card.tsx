@@ -255,9 +255,13 @@ export function TodayScheduleCard({ className = '' }: TodayScheduleCardProps) {
         // 🚀 즉시 데이터 새로고침
         invalidateAndRefetch();
         
-        // 🔥 전역 이벤트 발생
+        // 🔥 전역 이벤트 발생 (업무목록전체 자동새로고침 방지 플래그 추가)
         window.dispatchEvent(new CustomEvent('tasksBulkUpdated', { 
-          detail: { count: savedCount } 
+          detail: { 
+            count: savedCount,
+            source: 'today-schedule-card',  // 출처 표시
+            preventAutoRefresh: true        // 자동 새로고침 방지 플래그
+          } 
         }));
         
         toast({

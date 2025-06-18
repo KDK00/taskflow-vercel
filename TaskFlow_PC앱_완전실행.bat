@@ -2,39 +2,44 @@
 chcp 65001 >nul
 cls
 
-echo ========================================
-echo    TaskFlow PC 앱 완전실행 도구
-echo ========================================
+echo =======================================
+echo    TaskFlow PC 앱 완전 실행 도구
+echo =======================================
+echo.
+echo 🚀 1단계: 백엔드 서버 시작 중...
+echo    잠시만 기다려주세요...
 echo.
 
-:: 1. 기존 프로세스 정리
-echo [1단계] 기존 프로세스 정리 중...
-taskkill /F /IM app.exe >nul 2>&1
-taskkill /F /IM node.exe >nul 2>&1
-echo ✅ 프로세스 정리 완료
+REM 기존 Node.js 프로세스 종료
+taskkill /f /im node.exe >nul 2>&1
 
-:: 2. 백엔드 서버 시작 (백그라운드)
-echo [2단계] 백엔드 서버 시작 중...
-start /B npm run dev:server
-echo ✅ 백엔드 서버 시작
+REM 백그라운드에서 서버 시작
+start /B cmd /c "npm run dev:server"
 
-:: 3. 서버 시작 대기
-echo [3단계] 서버 초기화 대기 중... (5초)
-timeout /t 5 >nul
+echo ⏳ 서버 초기화 대기 중... (10초)
+timeout /t 10 /nobreak >nul
 
-:: 4. PC 앱 실행
-echo [4단계] TaskFlow PC 앱 실행 중...
+echo.
+echo 🚀 2단계: PC 앱 실행 중...
+echo.
+
+REM PC 앱 실행
 if exist "src-tauri\target\debug\app.exe" (
-    echo ✅ 빌드된 앱 발견! 실행합니다...
+    echo ✅ 기존 빌드 발견! PC 앱 실행...
     start "" "src-tauri\target\debug\app.exe"
+    echo.
+    echo 🎉 TaskFlow PC 앱이 실행되었습니다!
+    echo 📌 창이 보이지 않으면 작업표시줄을 확인하세요.
+    echo.
+    echo 💡 사용 정보:
+    echo    - 로그인: admin / admin
+    echo    - 서버: http://localhost:3000
+    echo.
 ) else (
-    echo ❌ 빌드된 앱이 없습니다. 첫 빌드를 시작합니다...
-    npm run dev:tauri
+    echo ❌ PC 앱 빌드 파일을 찾을 수 없습니다.
+    echo 💡 먼저 'npm run build:tauri'를 실행해주세요.
 )
 
 echo.
-echo 🎉 TaskFlow PC 앱이 실행되었습니다!
-echo 📌 앱 창과 백엔드 서버가 모두 실행 중입니다.
-echo 📌 종료하려면 이 창을 닫지 마세요.
-echo.
+echo 🔧 서버를 중지하려면 Ctrl+C를 누르세요.
 pause 

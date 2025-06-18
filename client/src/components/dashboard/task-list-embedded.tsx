@@ -241,15 +241,28 @@ export function TaskListEmbedded({ onCreateTask, onEditTask }: TaskListEmbeddedP
       for (const taskId of taskIds) {
         const changes = pendingChanges[taskId];
         if (Object.keys(changes).length > 0) {
+          console.log('💾 업무 저장 시도:', { taskId, changes });
+          
           const response = await fetch(`/api/tasks/${taskId}`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            credentials: 'include', // 세션 쿠키 포함
             body: JSON.stringify(changes)
           });
           
+          console.log('📡 서버 응답:', response.status, response.statusText);
+          
           if (!response.ok) {
-            throw new Error(`업무 ${taskId} 수정 실패`);
+            const errorText = await response.text();
+            console.error('❌ 저장 실패:', errorText);
+            throw new Error(`업무 ${taskId} 수정 실패: ${response.status}`);
           }
+          
+          const result = await response.json();
+          console.log('✅ 저장 성공:', result);
         }
       }
       
@@ -277,21 +290,41 @@ export function TaskListEmbedded({ onCreateTask, onEditTask }: TaskListEmbeddedP
 
   const handleStatusChange = async (taskId: number, newStatus: string) => {
     try {
+      console.log('🔄 상태 변경 시도:', { taskId, newStatus });
+      
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include', // 세션 쿠키 포함
         body: JSON.stringify({ status: newStatus })
       });
       
+      console.log('📡 상태 변경 응답:', response.status, response.statusText);
+      
       if (response.ok) {
+        const result = await response.json();
+        console.log('✅ 상태 변경 성공:', result);
+        
         invalidateAndRefetch();
         toast({
           title: "✅ 상태 변경 완료",
           description: "업무 상태가 성공적으로 변경되었습니다.",
         });
+      } else {
+        const errorText = await response.text();
+        console.error('❌ 상태 변경 실패:', errorText);
+        throw new Error(`상태 변경 실패: ${response.status}`);
       }
     } catch (error) {
       console.error('상태 변경 실패:', error);
+      toast({
+        title: "❌ 상태 변경 실패",
+        description: "업무 상태 변경 중 오류가 발생했습니다.",
+        variant: "destructive"
+      });
     }
   };
 

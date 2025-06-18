@@ -35,6 +35,7 @@ import { ScheduleExcelUpload } from "@/components/schedule-excel-upload";
 import { TaskListTable } from "@/components/dashboard/task-list-table";
 import { AccountManagement } from "@/components/admin/account-management";
 import { StorageSettings } from "@/components/admin/storage-settings";
+import { BrandingSettings } from "@/components/admin/branding-settings";
 import { TodayScheduleCard } from "@/components/dashboard/today-schedule-card";
 import { useLocation } from "wouter";
 
@@ -421,6 +422,9 @@ export default function Dashboard() {
               {(user?.role === 'developer' || user?.role === 'manager') && (
                 <TabsContent value="admin-settings" className="mt-6">
                   <div className="space-y-6">
+                    {/* 브랜딩 설정 섹션 */}
+                    <BrandingSettings />
+                    
                     {/* 계정 관리 섹션 */}
                     <AccountManagement />
                     
