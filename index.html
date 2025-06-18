@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlowMaster - 업무관리 시스템</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 90%;
+        }
+        
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        
+        .status {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            margin: 10px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-primary {
+            background: rgba(102, 126, 234, 0.8);
+            border-color: rgba(102, 126, 234, 1);
+        }
+        
+        .btn-primary:hover {
+            background: rgba(102, 126, 234, 1);
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .info-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .info-card h3 {
+            margin-bottom: 10px;
+            color: #ffd700;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .footer {
+            margin-top: 30px;
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🚀</div>
+        <h1>TaskFlowMaster</h1>
+        <p class="subtitle">업무관리 시스템</p>
+        
+        <div class="status">
+            <h3>🔄 시스템 상태</h3>
+            <p id="status-text">서버 연결 확인 중... <span class="loading"></span></p>
+        </div>
+        
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>📱 클라이언트</h3>
+                <p>React + TypeScript</p>
+                <p>포트: 5173</p>
+            </div>
+            <div class="info-card">
+                <h3>🖥️ 서버</h3>
+                <p>Express + SQLite</p>
+                <p>포트: 3000</p>
+            </div>
+        </div>
+        
+        <div>
+            <a href="http://localhost:5173" class="btn btn-primary" id="app-link">
+                📋 업무관리 시스템 열기
+            </a>
+            <button class="btn" id="start-server-btn" onclick="oneClickStart()">
+                🚀 원클릭 시작
+            </button>
+            <a href="http://localhost:3000/api/health" class="btn" target="_blank">
+                🔍 서버 상태 확인
+            </a>
+        </div>
+        
+        <div class="info-card" style="margin-top: 30px;">
+            <h3>🔑 로그인 정보</h3>
+            <p><strong>개발자:</strong> admin / admin</p>
+            <p><strong>관리자:</strong> nara0 / nara0, nara1 / nara1</p>
+            <p><strong>사용자:</strong> nara2 / nara2, nara3 / nara3, nara4 / nara4</p>
+        </div>
+        
+        <div class="footer">
+            <p>🚀TaskFlowMaster_완벽실행.bat 파일을 실행하여 전체 시스템을 시작하세요</p>
+        </div>
+    </div>
+
+    <script>
+        // 서버 상태 확인
+        async function checkServerStatus() {
+            const statusText = document.getElementById('status-text');
+            const appLink = document.getElementById('app-link');
+            
+            try {
+                // 클라이언트 서버 확인
+                const clientResponse = await fetch('http://localhost:5173', { mode: 'no-cors' });
+                
+                // 백엔드 서버 확인
+                const serverResponse = await fetch('http://localhost:3000/api/health', { mode: 'no-cors' });
+                
+                statusText.innerHTML = '✅ 모든 서버가 정상 실행 중입니다!';
+                appLink.style.background = 'rgba(34, 197, 94, 0.8)';
+                appLink.style.borderColor = 'rgba(34, 197, 94, 1)';
+                
+            } catch (error) {
+                statusText.innerHTML = '⚠️ 서버를 시작해주세요. 🚀TaskFlowMaster_완벽실행.bat 파일을 실행하세요.';
+                appLink.style.background = 'rgba(239, 68, 68, 0.8)';
+                appLink.style.borderColor = 'rgba(239, 68, 68, 1)';
+                appLink.onclick = function(e) {
+                    e.preventDefault();
+                    alert('먼저 🚀TaskFlowMaster_완벽실행.bat 파일을 실행하여 서버를 시작해주세요.');
+                };
+            }
+        }
+        
+        // 페이지 로드 시 서버 상태 확인
+        window.addEventListener('load', () => {
+            setTimeout(checkServerStatus, 1000);
+        });
+        
+        // 5초마다 서버 상태 재확인
+        setInterval(checkServerStatus, 5000);
+        
+        // 서버 자동 시작 함수
+        function startServer() {
+            const startBtn = document.getElementById('start-server-btn');
+            const statusText = document.getElementById('status-text');
+            
+            // 버튼 비활성화 및 로딩 상태
+            startBtn.disabled = true;
+            startBtn.innerHTML = '🔄 서버 시작 중...';
+            startBtn.style.background = 'rgba(255, 193, 7, 0.8)';
+            
+            statusText.innerHTML = '🚀 TaskFlowMaster 서버를 시작하고 있습니다... <span class="loading"></span>';
+            
+            try {
+                // Windows 환경에서 배치파일 실행
+                if (navigator.platform.indexOf('Win') !== -1) {
+                    // 방법 1: 파일 다운로드 링크로 배치파일 실행 유도
+                    const link = document.createElement('a');
+                    link.href = '🚀TaskFlowMaster_완벽실행.bat';
+                    link.download = '🚀TaskFlowMaster_완벽실행.bat';
+                    link.click();
+                    
+                    // 사용자에게 안내
+                    setTimeout(() => {
+                        alert('🚀TaskFlowMaster_완벽실행.bat 파일이 다운로드되었습니다.\n\n다운로드된 파일을 더블클릭하여 실행해주세요.\n\n또는 프로젝트 폴더의 배치파일을 직접 실행해주세요.');
+                        
+                        // 버튼 복원
+                        startBtn.disabled = false;
+                        startBtn.innerHTML = '🚀 서버 자동 시작';
+                        startBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+                        
+                        // 서버 상태 체크 시작
+                        setTimeout(() => {
+                            statusText.innerHTML = '⏳ 서버 시작을 기다리는 중... (배치파일을 실행해주세요)';
+                            checkServerStatus();
+                        }, 2000);
+                    }, 1000);
+                } else {
+                    // 비Windows 환경
+                    alert('Windows 환경이 아닙니다.\n수동으로 🚀TaskFlowMaster_완벽실행.bat 파일을 실행해주세요.');
+                    startBtn.disabled = false;
+                    startBtn.innerHTML = '🚀 서버 자동 시작';
+                    startBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+                }
+            } catch (error) {
+                console.error('서버 시작 오류:', error);
+                alert('자동 시작에 실패했습니다.\n수동으로 🚀TaskFlowMaster_완벽실행.bat 파일을 실행해주세요.');
+                
+                // 버튼 복원
+                startBtn.disabled = false;
+                startBtn.innerHTML = '🚀 서버 자동 시작';
+                startBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+            }
+        }
+        
+        // 자동 시작 옵션 (페이지 로드 후 5초 뒤)
+        function autoStartPrompt() {
+            if (confirm('🚀 TaskFlowMaster 서버를 자동으로 시작하시겠습니까?\n\n"확인"을 클릭하면 배치파일이 실행됩니다.')) {
+                startServer();
+            }
+        }
+        
+        // 페이지 로드 후 자동 시작 프롬프트 (3초 후)
+        setTimeout(() => {
+            if (document.getElementById('status-text').innerHTML.includes('서버를 시작해주세요')) {
+                if (confirm('🚀 TaskFlowMaster 서버가 실행되지 않았습니다.\n\n자동으로 시작하시겠습니까?')) {
+                    oneClickStart();
+                }
+            }
+        }, 3000);
+        
+        // 고급 배치파일 실행 함수
+        function advancedStartServer() {
+            const startBtn = document.getElementById('start-server-btn');
+            const statusText = document.getElementById('status-text');
+            
+            startBtn.disabled = true;
+            startBtn.innerHTML = '🔄 서버 시작 중...';
+            statusText.innerHTML = '🚀 TaskFlowMaster 서버를 시작하고 있습니다... <span class="loading"></span>';
+            
+            // 방법 1: ActiveX를 통한 직접 실행 (IE/Edge 레거시)
+            try {
+                if (window.ActiveXObject || "ActiveXObject" in window) {
+                    const shell = new ActiveXObject("WScript.Shell");
+                    shell.Run('🚀TaskFlowMaster_완벽실행.bat', 1, false);
+                    
+                    statusText.innerHTML = '✅ 배치파일이 실행되었습니다! 서버 시작을 기다리는 중...';
+                    setTimeout(checkServerStatus, 3000);
+                    return;
+                }
+            } catch (e) {
+                console.log('ActiveX 실행 실패:', e);
+            }
+            
+            // 방법 2: 파일 프로토콜을 통한 실행
+            try {
+                const batPath = window.location.href.replace('index.html', '') + '🚀TaskFlowMaster_완벽실행.bat';
+                window.open('file:///' + batPath.replace(/\//g, '\\'), '_blank');
+                
+                statusText.innerHTML = '⏳ 배치파일 실행을 시도했습니다. 서버 시작을 확인 중...';
+                setTimeout(checkServerStatus, 3000);
+                return;
+            } catch (e) {
+                console.log('파일 프로토콜 실행 실패:', e);
+            }
+            
+            // 방법 3: 사용자 안내 (폴백)
+            alert('🚀 자동 실행을 위해 다음 중 하나를 선택해주세요:\n\n1. 프로젝트 폴더의 "🚀TaskFlowMaster_완벽실행.bat" 파일을 더블클릭\n2. 명령 프롬프트에서 "🚀TaskFlowMaster_완벽실행.bat" 실행\n3. 아래 "서버 상태 확인" 버튼으로 수동 확인');
+            
+            startBtn.disabled = false;
+            startBtn.innerHTML = '🚀 서버 자동 시작';
+            statusText.innerHTML = '⏳ 수동으로 배치파일을 실행해주세요.';
+        }
+        
+        // 원클릭 실행 시스템
+        function oneClickStart() {
+            if (confirm('🎯 TaskFlowMaster를 원클릭으로 시작하시겠습니까?\n\n이 기능은 다음을 수행합니다:\n• 모든 Node.js 프로세스 종료\n• 포트 초기화\n• 서버 자동 시작\n• 웹페이지 자동 열기')) {
+                
+                // 사용자에게 배치파일 실행 안내
+                const instructions = `
+🚀 TaskFlowMaster 원클릭 시작 가이드
+
+1️⃣ 현재 폴더에서 "🚀TaskFlowMaster_완벽실행.bat" 파일을 찾으세요
+2️⃣ 해당 파일을 더블클릭하여 실행하세요
+3️⃣ 포트 선택 화면에서 1번(5173 포트)을 선택하세요
+4️⃣ 서버가 시작되면 자동으로 웹페이지가 열립니다
+
+💡 팁: 이 페이지를 새로고침하면 서버 상태가 업데이트됩니다!
+                `;
+                
+                alert(instructions);
+                
+                // 5초 후 자동 새로고침으로 서버 상태 확인
+                setTimeout(() => {
+                    if (confirm('서버 상태를 확인하기 위해 페이지를 새로고침하시겠습니까?')) {
+                        location.reload();
+                    }
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html> 

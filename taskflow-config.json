@@ -1,0 +1,8 @@
+{
+  "dataDir": "./data",
+  "autoBackup": true,
+  "backupInterval": 24,
+  "maxBackupFiles": 10,
+  "systemName": "TaskFlowMaster",
+  "version": "1.0.0"
+} 
